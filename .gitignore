@@ -33,3 +33,24 @@ wandb/
 
 # OS
 .DS_Store
+Thumbs.db
+
+# Claude
+.claude/
+
+# ── TRIBE BCI: Proprietary & Data ──────────────
+# Proprietary channel mapping (core IP)
+reverse_bci/proprietary_config.py
+
+# EEG datasets (large, not for public repo)
+data/
+
+# Trained models and experiment results
+checkpoints/
+
+# Session logs
+bci_logs/
+bci_output.txt
+
+# Reverse BCI docs (internal)
+REVERSE_BCI.md

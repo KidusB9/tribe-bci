@@ -63,5 +63,19 @@ line-length = 88
 [tool.isort]
 profile = "black"
 
+[project.optional-dependencies.bci]
+  # Core BCI dependencies (inference only)
+  muselsl = ["muselsl>=2.0"]
+  pylsl = ["pylsl>=1.16"]
+
+[project.optional-dependencies.gui]
+  PyQt6 = ["PyQt6>=6.5"]
+
+[project.scripts]
+reverse-bci = "reverse_bci.ui.app:main"
+reverse-bci-demo = "reverse_bci.run_demo:main"
+reverse-bci-train = "reverse_bci.train_full:main"
+reverse-bci-speller = "reverse_bci.ui.predictive_speller:main"
+
 [tool.setuptools.packages.find]
-include = ["tribe*"]
+include = ["tribe*", "reverse_bci*"]

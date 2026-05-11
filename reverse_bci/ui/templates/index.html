@@ -1,0 +1,2075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TRIBE BCI — Decode Human Thought</title>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   TRIBE BCI — Neural Interface Frontend
+   Zero-dependency, offline-ready investor demo
+   ═══════════════════════════════════════════════════════════ */
+
+*, *::before, *::after {
+  margin: 0; padding: 0; box-sizing: border-box;
+}
+
+:root {
+  --bg: #050510;
+  --card: rgba(255,255,255,0.03);
+  --card-border: rgba(255,255,255,0.08);
+  --cyan: #00d4ff;
+  --purple: #7c3aed;
+  --green: #10b981;
+  --red: #ef4444;
+  --white: #ffffff;
+  --muted: #8892b0;
+  --text: #ccd6f6;
+  --font: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html {
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: var(--cyan) var(--bg);
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--cyan); border-radius: 3px; }
+
+/* ── Utility ─────────────────────────────────────── */
+.container { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+.section-fade { opacity: 0; transform: translateY(30px); transition: opacity 0.8s var(--ease), transform 0.8s var(--ease); }
+.section-fade.visible { opacity: 1; transform: translateY(0); }
+
+/* ── NAVBAR ──────────────────────────────────────── */
+#navbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+  background: rgba(5,5,16,0.75);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--card-border);
+  transition: background 0.3s var(--ease);
+}
+#navbar .nav-inner {
+  max-width: 1280px; margin: 0 auto; padding: 0 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 64px;
+}
+.nav-logo {
+  font-size: 1.5rem; font-weight: 800; letter-spacing: 2px; text-decoration: none;
+}
+.nav-logo .tribe { color: var(--cyan); }
+.nav-logo .bci { color: var(--white); }
+.nav-links { display: flex; gap: 32px; list-style: none; }
+.nav-links a {
+  color: var(--muted); text-decoration: none; font-size: 0.9rem;
+  font-weight: 500; transition: color 0.3s var(--ease); position: relative;
+}
+.nav-links a::after {
+  content: ''; position: absolute; bottom: -4px; left: 0; width: 0;
+  height: 2px; background: var(--cyan); transition: width 0.3s var(--ease);
+}
+.nav-links a:hover, .nav-links a.active { color: var(--white); }
+.nav-links a:hover::after, .nav-links a.active::after { width: 100%; }
+.nav-status {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.8rem; color: var(--muted);
+}
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--green);
+  animation: statusPulse 2s infinite;
+}
+.status-dot.disconnected { background: var(--red); animation: none; }
+@keyframes statusPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.6); }
+  50% { box-shadow: 0 0 0 6px rgba(16,185,129,0); }
+}
+.nav-hamburger {
+  display: none; background: none; border: none; cursor: pointer;
+  flex-direction: column; gap: 5px; padding: 4px;
+}
+.nav-hamburger span {
+  display: block; width: 24px; height: 2px; background: var(--white);
+  transition: 0.3s var(--ease);
+}
+
+/* ── HERO ────────────────────────────────────────── */
+#hero {
+  position: relative; min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+#hero-canvas {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  z-index: 0;
+}
+.hero-content {
+  position: relative; z-index: 1; text-align: center;
+  max-width: 800px; padding: 0 24px;
+}
+.hero-overline {
+  font-size: 0.85rem; letter-spacing: 6px; text-transform: uppercase;
+  color: var(--cyan); margin-bottom: 16px; font-weight: 500;
+}
+.hero-title {
+  font-size: clamp(3rem, 6vw, 5rem); font-weight: 800;
+  color: var(--white); line-height: 1.1; margin-bottom: 20px;
+  background: linear-gradient(135deg, var(--white) 0%, var(--cyan) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-subtitle {
+  font-size: clamp(1rem, 2vw, 1.25rem); color: var(--muted);
+  max-width: 600px; margin: 0 auto 32px; line-height: 1.7;
+}
+.hero-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+.btn {
+  padding: 14px 32px; border-radius: 8px; font-size: 1rem;
+  font-weight: 600; cursor: pointer; transition: all 0.3s var(--ease);
+  text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+  border: none; font-family: var(--font);
+}
+.btn-primary {
+  background: var(--cyan); color: var(--bg);
+  box-shadow: 0 0 30px rgba(0,212,255,0.3);
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 40px rgba(0,212,255,0.5);
+}
+.btn-outline {
+  background: transparent; color: var(--cyan);
+  border: 1px solid var(--cyan);
+}
+.btn-outline:hover {
+  background: rgba(0,212,255,0.1);
+  transform: translateY(-2px);
+}
+.hero-stats {
+  display: flex; gap: 24px; justify-content: center; margin-top: 48px; flex-wrap: wrap;
+}
+.hero-stat {
+  background: var(--card); border: 1px solid var(--card-border);
+  padding: 16px 28px; border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+.hero-stat-value {
+  font-size: 1.5rem; font-weight: 700; color: var(--cyan);
+  font-family: var(--mono);
+}
+.hero-stat-label { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+.scroll-indicator {
+  position: absolute; bottom: 32px; left: 50%;
+  transform: translateX(-50%); z-index: 1;
+  animation: scrollBounce 2s infinite;
+  cursor: pointer; opacity: 0.5; transition: opacity 0.3s;
+}
+.scroll-indicator:hover { opacity: 1; }
+.scroll-indicator svg { width: 32px; height: 32px; }
+@keyframes scrollBounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(10px); }
+}
+
+/* ── DASHBOARD ───────────────────────────────────── */
+#dashboard { padding: 100px 0 60px; }
+.section-title {
+  font-size: 2rem; font-weight: 700; color: var(--white); margin-bottom: 8px;
+}
+.section-title .accent { color: var(--cyan); }
+.section-desc { color: var(--muted); margin-bottom: 40px; font-size: 1rem; }
+
+.stats-row {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+  margin-bottom: 32px;
+}
+.stat-card {
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: 16px; padding: 24px;
+  backdrop-filter: blur(10px); transition: all 0.3s var(--ease);
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0,212,255,0.2);
+}
+.stat-card-label {
+  font-size: 0.8rem; color: var(--muted); text-transform: uppercase;
+  letter-spacing: 1px; margin-bottom: 8px;
+}
+.stat-card-value {
+  font-size: 2rem; font-weight: 700; color: var(--white);
+  font-family: var(--mono);
+}
+.stat-card-sub { font-size: 0.75rem; color: var(--green); margin-top: 4px; }
+.stat-sparkline { margin-top: 12px; height: 30px; }
+.stat-sparkline canvas { width: 100%; height: 30px; }
+.signal-bar-container {
+  margin-top: 12px; height: 6px; background: rgba(255,255,255,0.06);
+  border-radius: 3px; overflow: hidden;
+}
+.signal-bar {
+  height: 100%; background: linear-gradient(90deg, var(--green), var(--cyan));
+  border-radius: 3px; transition: width 0.5s var(--ease); width: 78%;
+}
+
+.dashboard-grid {
+  display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px;
+}
+.panel {
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: 16px; overflow: hidden;
+  backdrop-filter: blur(10px); transition: all 0.3s var(--ease);
+}
+.panel:hover { border-color: rgba(0,212,255,0.15); }
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid var(--card-border);
+}
+.panel-title {
+  font-size: 0.9rem; font-weight: 600; color: var(--white);
+  display: flex; align-items: center; gap: 8px;
+}
+.panel-title .dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--cyan);
+}
+.panel-badge {
+  font-size: 0.7rem; padding: 3px 10px; border-radius: 20px;
+  background: rgba(0,212,255,0.1); color: var(--cyan); font-family: var(--mono);
+}
+.panel-body { padding: 20px; }
+.panel-body.no-pad { padding: 0; }
+
+/* EEG Waveform */
+#eeg-canvas { width: 100%; height: 480px; display: block; background: #060612; }
+
+/* Brain Map */
+.brain-map-container { display: flex; justify-content: center; padding: 20px; }
+#brain-map { width: 260px; height: 280px; }
+.electrode { transition: all 0.3s var(--ease); cursor: pointer; }
+.electrode:hover { filter: brightness(1.5); }
+.electrode-label { font-size: 9px; fill: var(--muted); text-anchor: middle; }
+.brain-tooltip {
+  position: absolute; background: rgba(5,5,16,0.95); border: 1px solid var(--cyan);
+  padding: 8px 14px; border-radius: 8px; font-size: 0.8rem; color: var(--white);
+  pointer-events: none; z-index: 100; display: none;
+  backdrop-filter: blur(10px);
+}
+.brain-tooltip .tt-channel { color: var(--cyan); font-weight: 600; }
+.brain-tooltip .tt-region { color: var(--muted); font-size: 0.75rem; }
+
+/* Decoded Output */
+.decoded-output {
+  max-height: 200px; overflow-y: auto; padding: 16px 20px;
+}
+.decoded-sentence {
+  font-size: 1.15rem; color: var(--white); font-weight: 500;
+  padding: 12px 0; border-bottom: 1px solid var(--card-border);
+  min-height: 48px; line-height: 1.8;
+}
+.decoded-word {
+  display: inline-block; margin-right: 4px;
+  animation: wordFlash 0.6s var(--ease);
+}
+@keyframes wordFlash {
+  0% { color: var(--cyan); text-shadow: 0 0 20px var(--cyan); transform: scale(1.1); }
+  100% { color: var(--white); text-shadow: none; transform: scale(1); }
+}
+.decoded-history { padding: 8px 0; }
+.decoded-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 0; font-size: 0.85rem;
+}
+.decoded-item-word {
+  font-weight: 600; color: var(--white); min-width: 50px;
+  font-family: var(--mono);
+}
+.decoded-item-bar-bg {
+  flex: 1; height: 4px; background: rgba(255,255,255,0.06);
+  border-radius: 2px; overflow: hidden;
+}
+.decoded-item-bar {
+  height: 100%; border-radius: 2px;
+  background: linear-gradient(90deg, var(--cyan), var(--purple));
+  transition: width 0.5s var(--ease);
+}
+.decoded-item-conf {
+  font-size: 0.75rem; color: var(--muted); font-family: var(--mono);
+  min-width: 40px; text-align: right;
+}
+
+/* Confidence Panel */
+.confidence-bars { padding: 16px 20px; }
+.conf-row {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+}
+.conf-row:last-child { margin-bottom: 0; }
+.conf-label {
+  font-size: 0.85rem; font-weight: 600; color: var(--muted);
+  min-width: 56px; font-family: var(--mono);
+}
+.conf-label.active { color: var(--white); }
+.conf-bar-bg {
+  flex: 1; height: 8px; background: rgba(255,255,255,0.06);
+  border-radius: 4px; overflow: hidden;
+}
+.conf-bar {
+  height: 100%; border-radius: 4px; transition: width 0.4s var(--ease);
+  background: var(--purple);
+}
+.conf-bar.winner { background: linear-gradient(90deg, var(--cyan), #00f0ff); }
+.conf-value {
+  font-size: 0.8rem; color: var(--muted); font-family: var(--mono);
+  min-width: 42px; text-align: right;
+}
+.conf-value.winner { color: var(--cyan); font-weight: 600; }
+
+/* ── LLM ERROR CORRECTION PANEL ─────────────────── */
+.llm-panel { position: relative; overflow: hidden; }
+.llm-panel::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cyan), var(--purple), transparent);
+  opacity: 0; transition: opacity 0.3s;
+}
+.llm-panel.active::before { opacity: 1; }
+.llm-content { padding: 16px 20px; min-height: 120px; }
+.llm-waiting { color: var(--muted); font-size: 0.9rem; font-style: italic; }
+.llm-stage { margin-bottom: 14px; }
+.llm-stage:last-child { margin-bottom: 0; }
+.llm-label {
+  font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em;
+  margin-bottom: 4px; font-family: var(--mono);
+}
+.llm-label-raw { color: var(--red); opacity: 0.7; }
+.llm-label-corrected { color: var(--green); }
+.llm-text-raw {
+  font-size: 1.05rem; color: rgba(255,255,255,0.3); font-family: var(--mono);
+  line-height: 1.5; position: relative;
+  text-decoration: line-through; text-decoration-color: rgba(239,68,68,0.3);
+}
+.llm-text-corrected {
+  font-size: 1.15rem; color: var(--white); font-weight: 600;
+  line-height: 1.5; opacity: 0; transform: translateY(4px);
+  transition: opacity 0.4s var(--ease), transform 0.4s var(--ease);
+  text-shadow: 0 0 20px rgba(0,212,255,0.4), 0 0 40px rgba(0,212,255,0.15);
+}
+.llm-text-corrected.visible { opacity: 1; transform: translateY(0); }
+.llm-boost {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25);
+  border-radius: 12px; padding: 2px 10px; font-size: 0.7rem;
+  color: var(--green); font-family: var(--mono); margin-top: 8px;
+}
+.llm-arrow {
+  display: flex; align-items: center; justify-content: center;
+  color: var(--cyan); font-size: 0.9rem; margin: 4px 0;
+  opacity: 0; transition: opacity 0.3s;
+}
+.llm-arrow.visible { opacity: 0.6; }
+.live-badge {
+  background: rgba(16,185,129,0.15) !important; color: var(--green) !important;
+  border: 1px solid rgba(16,185,129,0.3) !important;
+  animation: livePulse 2s infinite;
+}
+@keyframes livePulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; box-shadow: 0 0 8px rgba(16,185,129,0.3); }
+}
+@keyframes snapIn {
+  0% { transform: scale(0.95) translateY(6px); opacity: 0; filter: blur(4px); }
+  60% { transform: scale(1.02) translateY(-1px); opacity: 1; filter: blur(0); }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+.llm-snap { animation: snapIn 0.5s var(--ease) forwards; }
+
+/* ── CALIBRATE ───────────────────────────────────── */
+#calibrate { padding: 100px 0 80px; }
+.calibrate-container {
+  max-width: 640px; margin: 0 auto; text-align: center;
+}
+.step-indicator {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0; margin-bottom: 48px;
+}
+.step-dot {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--card); border: 2px solid var(--card-border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.8rem; font-weight: 600; color: var(--muted);
+  transition: all 0.4s var(--ease); position: relative; z-index: 1;
+}
+.step-dot.active {
+  border-color: var(--cyan); color: var(--cyan);
+  box-shadow: 0 0 20px rgba(0,212,255,0.3);
+}
+.step-dot.complete {
+  border-color: var(--green); background: var(--green); color: var(--bg);
+}
+.step-line {
+  width: 60px; height: 2px; background: var(--card-border);
+  transition: background 0.4s var(--ease);
+}
+.step-line.complete { background: var(--green); }
+.cal-prompt-area {
+  min-height: 280px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.cal-word {
+  font-size: 4rem; font-weight: 800; color: var(--white);
+  margin: 16px 0; transition: all 0.4s var(--ease);
+}
+.cal-arrow {
+  font-size: 3rem; color: var(--cyan); margin-bottom: 8px;
+  animation: calPulse 1.5s infinite;
+}
+@keyframes calPulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+.cal-description {
+  color: var(--muted); font-size: 1rem; max-width: 420px;
+  margin: 0 auto 24px; line-height: 1.7;
+}
+.cal-progress-ring {
+  width: 120px; height: 120px; margin: 20px auto;
+  position: relative;
+}
+.cal-progress-ring svg { transform: rotate(-90deg); }
+.cal-progress-ring circle {
+  fill: none; stroke-width: 4;
+}
+.cal-progress-bg { stroke: rgba(255,255,255,0.06); }
+.cal-progress-fg {
+  stroke: var(--cyan); stroke-linecap: round;
+  transition: stroke-dashoffset 0.1s linear;
+}
+.cal-progress-text {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.4rem; font-weight: 700; color: var(--white);
+  font-family: var(--mono);
+}
+.cal-success-check {
+  width: 80px; height: 80px; margin: 20px auto;
+  border-radius: 50%; background: var(--green);
+  display: flex; align-items: center; justify-content: center;
+  animation: successPop 0.5s var(--ease);
+}
+@keyframes successPop {
+  0% { transform: scale(0); } 50% { transform: scale(1.2); } 100% { transform: scale(1); }
+}
+.cal-success-check svg { width: 40px; height: 40px; }
+.cal-tagline {
+  font-size: 0.85rem; color: var(--muted); font-style: italic;
+  margin-top: 32px; max-width: 500px; padding: 16px 24px;
+  background: var(--card); border-radius: 12px;
+  border: 1px solid var(--card-border);
+}
+
+/* ── TECHNOLOGY ───────────────────────────────────── */
+#technology { padding: 100px 0 80px; }
+.tech-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 48px;
+  align-items: start; margin-bottom: 64px;
+}
+.tech-text h3 {
+  font-size: 1.75rem; font-weight: 700; color: var(--white);
+  margin-bottom: 20px;
+}
+.tech-text p {
+  color: var(--muted); margin-bottom: 16px; line-height: 1.8;
+  font-size: 0.95rem;
+}
+.tech-text .highlight {
+  color: var(--cyan); font-weight: 600;
+}
+.tech-text .comparison {
+  display: flex; gap: 24px; margin: 24px 0;
+}
+.tech-text .comp-item {
+  flex: 1; padding: 20px; background: var(--card);
+  border: 1px solid var(--card-border); border-radius: 12px; text-align: center;
+}
+.comp-item .comp-value {
+  font-size: 2rem; font-weight: 800; font-family: var(--mono);
+}
+.comp-item .comp-label {
+  font-size: 0.8rem; color: var(--muted); margin-top: 4px;
+}
+.comp-item.winner { border-color: rgba(0,212,255,0.3); }
+.comp-item.winner .comp-value { color: var(--cyan); }
+.comp-item.loser .comp-value { color: var(--muted); }
+
+.chart-container {
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: 16px; padding: 24px; position: relative;
+}
+.chart-title {
+  font-size: 0.9rem; font-weight: 600; color: var(--white);
+  margin-bottom: 16px;
+}
+#accuracy-chart { width: 100%; height: 320px; display: block; }
+
+.feature-cards {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+}
+.feature-card {
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: 16px; padding: 32px 24px;
+  transition: all 0.3s var(--ease); text-align: center;
+}
+.feature-card:hover {
+  transform: translateY(-4px); border-color: rgba(0,212,255,0.2);
+}
+.feature-icon {
+  width: 56px; height: 56px; border-radius: 14px;
+  background: rgba(0,212,255,0.08); margin: 0 auto 16px;
+  display: flex; align-items: center; justify-content: center;
+}
+.feature-icon svg { width: 28px; height: 28px; }
+.feature-card h4 {
+  font-size: 1.05rem; font-weight: 600; color: var(--white); margin-bottom: 10px;
+}
+.feature-card p {
+  font-size: 0.85rem; color: var(--muted); line-height: 1.7;
+}
+
+/* ── HARDWARE ────────────────────────────────────── */
+#hardware { padding: 100px 0 80px; }
+.hardware-viz {
+  display: flex; justify-content: center; margin-bottom: 64px;
+}
+#headset-svg { max-width: 560px; width: 100%; height: auto; }
+.headset-electrode {
+  transition: all 0.3s var(--ease); cursor: pointer;
+}
+.headset-electrode:hover { filter: brightness(1.5); }
+@keyframes electrodePulse {
+  0%, 100% { r: 6; opacity: 0.8; }
+  50% { r: 9; opacity: 1; }
+}
+.headset-label {
+  font-size: 10px; fill: var(--muted); font-family: var(--mono);
+}
+
+.comparison-table-wrap {
+  max-width: 700px; margin: 0 auto 48px;
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: 16px; overflow: hidden;
+}
+.comparison-table {
+  width: 100%; border-collapse: collapse; font-size: 0.9rem;
+}
+.comparison-table th, .comparison-table td {
+  padding: 16px 24px; text-align: center; border-bottom: 1px solid var(--card-border);
+}
+.comparison-table th {
+  font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--muted); font-weight: 600;
+}
+.comparison-table th:first-child, .comparison-table td:first-child {
+  text-align: left; font-weight: 600; color: var(--white);
+}
+.comparison-table .tribe-col {
+  color: var(--cyan); font-weight: 600;
+  background: rgba(0,212,255,0.04);
+}
+.comparison-table th.tribe-col {
+  color: var(--cyan); font-weight: 700; font-size: 0.85rem;
+}
+.comparison-table .clinical-col { color: var(--muted); }
+.comparison-table tr:last-child td { border-bottom: none; }
+.comparison-table .winner-badge {
+  display: inline-block; background: rgba(0,212,255,0.15);
+  color: var(--cyan); padding: 2px 8px; border-radius: 4px;
+  font-size: 0.75rem; margin-left: 6px; font-weight: 500;
+}
+
+.cta-wrap { text-align: center; margin-top: 48px; }
+.btn-cta {
+  padding: 18px 48px; font-size: 1.15rem; border-radius: 12px;
+  background: linear-gradient(135deg, var(--cyan), #00a8cc);
+  color: var(--bg); font-weight: 700; border: none; cursor: pointer;
+  box-shadow: 0 0 40px rgba(0,212,255,0.3);
+  transition: all 0.3s var(--ease); font-family: var(--font);
+}
+.btn-cta:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0 60px rgba(0,212,255,0.5);
+}
+
+/* ── FOOTER ──────────────────────────────────────── */
+#footer {
+  padding: 48px 0; text-align: center;
+  border-top: 1px solid var(--card-border);
+  position: relative; overflow: hidden;
+}
+#footer-canvas {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  opacity: 0.15; pointer-events: none;
+}
+.footer-content { position: relative; z-index: 1; }
+.footer-brand {
+  font-size: 1.2rem; font-weight: 700; margin-bottom: 8px;
+}
+.footer-brand .tribe { color: var(--cyan); }
+.footer-brand .bci { color: var(--white); }
+.footer-copy { font-size: 0.8rem; color: var(--muted); }
+.footer-powered {
+  font-size: 0.75rem; color: rgba(255,255,255,0.2); margin-top: 8px;
+}
+
+/* ── RESPONSIVE ──────────────────────────────────── */
+@media (max-width: 1024px) {
+  .dashboard-grid { grid-template-columns: 1fr; }
+  .tech-grid { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  #eeg-canvas { height: 360px; }
+}
+@media (max-width: 768px) {
+  .nav-links { display: none; }
+  .nav-hamburger { display: flex; }
+  .nav-links.open {
+    display: flex; flex-direction: column;
+    position: absolute; top: 64px; left: 0; right: 0;
+    background: rgba(5,5,16,0.95); padding: 24px;
+    border-bottom: 1px solid var(--card-border);
+    backdrop-filter: blur(20px);
+  }
+  .feature-cards { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .stats-row { grid-template-columns: 1fr; }
+  .hero-stats { flex-direction: column; align-items: center; }
+  .hero-title { font-size: 2.5rem; }
+  .hero-buttons { flex-direction: column; align-items: center; }
+  .tech-text .comparison { flex-direction: column; }
+  .comparison-table { font-size: 0.8rem; }
+  .comparison-table th, .comparison-table td { padding: 12px 14px; }
+  .section-title { font-size: 1.5rem; }
+  .cal-word { font-size: 2.5rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════
+     NAVBAR
+     ════════════════════════════════════════════════════ -->
+<nav id="navbar">
+  <div class="nav-inner">
+    <a href="#hero" class="nav-logo"><span class="tribe">TRIBE</span><span class="bci">BCI</span></a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#dashboard" data-section="dashboard">Dashboard</a></li>
+      <li><a href="#calibrate" data-section="calibrate">Calibrate</a></li>
+      <li><a href="#technology" data-section="technology">Technology</a></li>
+      <li><a href="#hardware" data-section="hardware">Hardware</a></li>
+    </ul>
+    <div class="nav-status">
+      <div class="status-dot disconnected" id="statusDot"></div>
+      <span id="statusText">Offline</span>
+    </div>
+    <button class="nav-hamburger" id="hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════════════════════════
+     HERO
+     ════════════════════════════════════════════════════ -->
+<section id="hero">
+  <canvas id="hero-canvas"></canvas>
+  <div class="hero-content">
+    <div class="hero-overline">Neural Interface Technology</div>
+    <h1 class="hero-title">Decode Human Thought</h1>
+    <p class="hero-subtitle">The first consumer brain-computer interface that reads inner speech using an 8-channel wearable headset — outperforming $50,000 clinical systems.</p>
+    <div class="hero-buttons">
+      <button class="btn btn-primary" id="btnLaunch" onclick="launchDashboard()">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        Launch Dashboard
+      </button>
+      <a href="#technology" class="btn btn-outline">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        View Technology
+      </a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-value">30.5%</div>
+        <div class="hero-stat-label">Accuracy</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-value">$800</div>
+        <div class="hero-stat-label">Hardware</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-value">8</div>
+        <div class="hero-stat-label">Channels</div>
+      </div>
+    </div>
+  </div>
+  <div class="scroll-indicator" onclick="document.getElementById('dashboard').scrollIntoView({behavior:'smooth'})">
+    <svg viewBox="0 0 24 24" fill="none" stroke="rgba(0,212,255,0.6)" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════
+     DASHBOARD
+     ════════════════════════════════════════════════════ -->
+<section id="dashboard" class="section-fade">
+  <div class="container">
+    <h2 class="section-title">Live <span class="accent">Dashboard</span></h2>
+    <p class="section-desc">Real-time neural decoding from 8-channel EEG</p>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-card-label">Words Decoded</div>
+        <div class="stat-card-value" id="statWords">0</div>
+        <div class="stat-card-sub">Session total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Accuracy</div>
+        <div class="stat-card-value" id="statAccuracy">30.5%</div>
+        <div class="stat-card-sub" style="color:var(--cyan)">p = 0.045</div>
+        <div class="stat-sparkline"><canvas id="sparkCanvas"></canvas></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Session Time</div>
+        <div class="stat-card-value" id="statTime">00:00</div>
+        <div class="stat-card-sub">Elapsed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Signal Quality</div>
+        <div class="stat-card-value" id="statSignal">78%</div>
+        <div class="signal-bar-container"><div class="signal-bar" id="signalBar"></div></div>
+      </div>
+    </div>
+
+    <div class="dashboard-grid">
+      <!-- LEFT: EEG Waveform -->
+      <div class="panel" style="grid-row: span 2;">
+        <div class="panel-header">
+          <div class="panel-title"><span class="dot"></span>EEG Waveform</div>
+          <span class="panel-badge" id="eegBadge">8 CH &middot; 256 Hz</span>
+        </div>
+        <div class="panel-body no-pad">
+          <canvas id="eeg-canvas"></canvas>
+        </div>
+      </div>
+
+      <!-- RIGHT TOP: Brain Map -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title"><span class="dot"></span>Brain Map</div>
+          <span class="panel-badge">10-20 System</span>
+        </div>
+        <div class="panel-body">
+          <div class="brain-map-container">
+            <svg id="brain-map" viewBox="0 0 260 280" xmlns="http://www.w3.org/2000/svg">
+              <!-- Head outline -->
+              <ellipse cx="130" cy="150" rx="110" ry="120" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1.5"/>
+              <!-- Nose -->
+              <path d="M120 30 L130 18 L140 30" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1.5" stroke-linecap="round"/>
+              <!-- Ears -->
+              <path d="M20 140 Q10 150 20 160" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+              <path d="M240 140 Q250 150 240 160" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+              <!-- Midline -->
+              <line x1="130" y1="40" x2="130" y2="260" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+              <line x1="30" y1="150" x2="230" y2="150" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+
+              <!-- Electrodes -->
+              <!-- Fz -->
+              <circle class="electrode" id="el-Fz" cx="130" cy="70" r="8" fill="rgba(0,212,255,0.3)" stroke="rgba(0,212,255,0.7)" stroke-width="1.5" data-channel="Fz" data-region="Midline Reference"/>
+              <text class="electrode-label" x="130" y="56">Fz</text>
+              <!-- Cz -->
+              <circle class="electrode" id="el-Cz" cx="130" cy="130" r="8" fill="rgba(0,212,255,0.3)" stroke="rgba(0,212,255,0.7)" stroke-width="1.5" data-channel="Cz" data-region="Midline Reference"/>
+              <text class="electrode-label" x="130" y="116">Cz</text>
+              <!-- F7 - Broca's Left -->
+              <circle class="electrode" id="el-F7" cx="65" cy="85" r="8" fill="rgba(124,58,237,0.3)" stroke="rgba(124,58,237,0.7)" stroke-width="1.5" data-channel="F7" data-region="Broca's Area (Speech Production)"/>
+              <text class="electrode-label" x="65" y="71">F7</text>
+              <!-- F8 - Broca's Right -->
+              <circle class="electrode" id="el-F8" cx="195" cy="85" r="8" fill="rgba(124,58,237,0.3)" stroke="rgba(124,58,237,0.7)" stroke-width="1.5" data-channel="F8" data-region="Broca's Area (Speech Production)"/>
+              <text class="electrode-label" x="195" y="71">F8</text>
+              <!-- C3 - Motor Left -->
+              <circle class="electrode" id="el-C3" cx="75" cy="140" r="8" fill="rgba(16,185,129,0.3)" stroke="rgba(16,185,129,0.7)" stroke-width="1.5" data-channel="C3" data-region="Motor Cortex (Tongue/Jaw)"/>
+              <text class="electrode-label" x="75" y="126">C3</text>
+              <!-- C4 - Motor Right -->
+              <circle class="electrode" id="el-C4" cx="185" cy="140" r="8" fill="rgba(16,185,129,0.3)" stroke="rgba(16,185,129,0.7)" stroke-width="1.5" data-channel="C4" data-region="Motor Cortex (Tongue/Jaw)"/>
+              <text class="electrode-label" x="185" y="126">C4</text>
+              <!-- T7 - Wernicke's Left -->
+              <circle class="electrode" id="el-T7" cx="45" cy="155" r="8" fill="rgba(239,68,68,0.3)" stroke="rgba(239,68,68,0.7)" stroke-width="1.5" data-channel="T7" data-region="Wernicke's Area (Comprehension)"/>
+              <text class="electrode-label" x="45" y="173">T7</text>
+              <!-- T8 - Wernicke's Right -->
+              <circle class="electrode" id="el-T8" cx="215" cy="155" r="8" fill="rgba(239,68,68,0.3)" stroke="rgba(239,68,68,0.7)" stroke-width="1.5" data-channel="T8" data-region="Wernicke's Area (Comprehension)"/>
+              <text class="electrode-label" x="215" y="173">T8</text>
+
+              <!-- Region labels -->
+              <text x="130" y="200" fill="rgba(255,255,255,0.06)" font-size="8" text-anchor="middle" font-family="system-ui">SPEECH &middot; MOTOR &middot; LANGUAGE</text>
+            </svg>
+          </div>
+          <div class="brain-tooltip" id="brainTooltip">
+            <div class="tt-channel"></div>
+            <div class="tt-region"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT BOTTOM: split into LLM Correction + Decoded + Confidence -->
+      <div style="display:flex; flex-direction:column; gap:24px;">
+        <!-- LLM Error Correction -->
+        <div class="panel llm-panel" id="llmPanel">
+          <div class="panel-header">
+            <div class="panel-title"><span class="dot" style="background:var(--green)"></span>LLM Error Correction</div>
+            <span class="panel-badge live-badge">LIVE</span>
+          </div>
+          <div class="llm-content" id="llmContent">
+            <div class="llm-waiting">Awaiting neural signal for correction...</div>
+          </div>
+        </div>
+
+        <!-- Decoded Output -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title"><span class="dot"></span>Decoded Output</div>
+            <span class="panel-badge" id="decodedCount">0 words</span>
+          </div>
+          <div class="decoded-output">
+            <div class="decoded-sentence" id="decodedSentence">
+              <span style="color:var(--muted); font-size:0.9rem;">Awaiting neural input...</span>
+            </div>
+            <div class="decoded-history" id="decodedHistory"></div>
+          </div>
+        </div>
+
+        <!-- Confidence -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title"><span class="dot"></span>Confidence</div>
+            <span class="panel-badge">Softmax</span>
+          </div>
+          <div class="confidence-bars">
+            <div class="conf-row" data-class="UP">
+              <span class="conf-label">UP</span>
+              <div class="conf-bar-bg"><div class="conf-bar" id="confUp" style="width:25%"></div></div>
+              <span class="conf-value" id="confUpVal">25%</span>
+            </div>
+            <div class="conf-row" data-class="DOWN">
+              <span class="conf-label">DOWN</span>
+              <div class="conf-bar-bg"><div class="conf-bar" id="confDown" style="width:25%"></div></div>
+              <span class="conf-value" id="confDownVal">25%</span>
+            </div>
+            <div class="conf-row" data-class="LEFT">
+              <span class="conf-label">LEFT</span>
+              <div class="conf-bar-bg"><div class="conf-bar" id="confLeft" style="width:25%"></div></div>
+              <span class="conf-value" id="confLeftVal">25%</span>
+            </div>
+            <div class="conf-row" data-class="RIGHT">
+              <span class="conf-label">RIGHT</span>
+              <div class="conf-bar-bg"><div class="conf-bar" id="confRight" style="width:25%"></div></div>
+              <span class="conf-value" id="confRightVal">25%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════
+     CALIBRATE
+     ════════════════════════════════════════════════════ -->
+<section id="calibrate" class="section-fade">
+  <div class="container">
+    <h2 class="section-title">Neural <span class="accent">Calibration</span></h2>
+    <p class="section-desc">Adapt the decoder to your unique brain patterns</p>
+
+    <div class="calibrate-container">
+      <div class="step-indicator">
+        <div class="step-dot active" id="stepDot1">1</div>
+        <div class="step-line" id="stepLine1"></div>
+        <div class="step-dot" id="stepDot2">2</div>
+        <div class="step-line" id="stepLine2"></div>
+        <div class="step-dot" id="stepDot3">3</div>
+        <div class="step-line" id="stepLine3"></div>
+        <div class="step-dot" id="stepDot4">4</div>
+      </div>
+
+      <div class="cal-prompt-area" id="calPrompt">
+        <!-- Step 1: Welcome -->
+        <div id="calStep1">
+          <div class="cal-arrow">
+            <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2a7 7 0 017 7c0 5-7 13-7 13S5 14 5 9a7 7 0 017-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+          </div>
+          <div class="cal-word" style="font-size:2.5rem">Welcome</div>
+          <p class="cal-description">The calibration process takes about 20 seconds. You will be shown directional words. For each word, think about that direction as clearly as you can. The neural decoder will learn your unique brain patterns.</p>
+          <button class="btn btn-primary" onclick="startCalibration()" style="margin-top:16px">Begin Calibration</button>
+        </div>
+
+        <!-- Step 2: Think UP (hidden by default) -->
+        <div id="calStep2" style="display:none">
+          <div class="cal-arrow">&uarr;</div>
+          <div class="cal-word">UP</div>
+          <p class="cal-description">Focus on thinking the word "UP." Visualize upward motion.</p>
+          <div class="cal-progress-ring" id="calRing2">
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              <circle class="cal-progress-bg" cx="60" cy="60" r="54"/>
+              <circle class="cal-progress-fg" id="calCircle2" cx="60" cy="60" r="54"
+                stroke-dasharray="339.29" stroke-dashoffset="339.29"/>
+            </svg>
+            <div class="cal-progress-text" id="calTime2">5s</div>
+          </div>
+        </div>
+
+        <!-- Step 3: Think DOWN -->
+        <div id="calStep3" style="display:none">
+          <div class="cal-arrow">&darr;</div>
+          <div class="cal-word">DOWN</div>
+          <p class="cal-description">Focus on thinking the word "DOWN." Visualize downward motion.</p>
+          <div class="cal-progress-ring" id="calRing3">
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              <circle class="cal-progress-bg" cx="60" cy="60" r="54"/>
+              <circle class="cal-progress-fg" id="calCircle3" cx="60" cy="60" r="54"
+                stroke-dasharray="339.29" stroke-dashoffset="339.29"/>
+            </svg>
+            <div class="cal-progress-text" id="calTime3">5s</div>
+          </div>
+        </div>
+
+        <!-- Step 4: Complete -->
+        <div id="calStep4" style="display:none">
+          <div class="cal-success-check">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#050510" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="cal-word" style="font-size:2.5rem; color:var(--green)">Complete!</div>
+          <p class="cal-description">Calibration successful. Your neural decoder has been personalized. Accuracy improvement: estimated +2.3%</p>
+          <button class="btn btn-primary" onclick="resetCalibration()" style="margin-top:16px">Recalibrate</button>
+        </div>
+      </div>
+
+      <p class="cal-tagline">"Calibration adapts the neural decoder to your unique brain patterns — like FaceID for your thoughts."</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════
+     TECHNOLOGY
+     ════════════════════════════════════════════════════ -->
+<section id="technology" class="section-fade">
+  <div class="container">
+    <h2 class="section-title">The <span class="accent">Science</span></h2>
+    <p class="section-desc">Why our approach defies conventional neuroscience wisdom</p>
+
+    <div class="tech-grid">
+      <div class="tech-text">
+        <h3>Why 8 Channels Beats 128</h3>
+        <p>Conventional wisdom says more data is better. With brain-computer interfaces, the opposite is true. We discovered the <span class="highlight">Curse of Dimensionality</span> in EEG decoding: 128-channel clinical systems capture enormous noise from irrelevant brain regions, overwhelming the AI model with useless data.</p>
+        <p>Our breakthrough: <span class="highlight">targeted spatial filtering</span>. By placing just 8 electrodes precisely over Broca's Area (speech production), Motor Cortex (articulatory intent), and Wernicke's Area (language comprehension), we capture only the neural signals that matter.</p>
+        <p>The result: a <span class="highlight">$800 consumer headset outperforms a $50,000 clinical-grade system</span> with statistical significance (p=0.045).</p>
+        <div class="comparison">
+          <div class="comp-item winner">
+            <div class="comp-value">$800</div>
+            <div class="comp-label">TRIBE BCI (8ch)</div>
+          </div>
+          <div class="comp-item loser">
+            <div class="comp-value">$50K</div>
+            <div class="comp-label">Clinical EEG (128ch)</div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-container">
+        <div class="chart-title">Decoding Accuracy by Channel Count</div>
+        <canvas id="accuracy-chart"></canvas>
+      </div>
+    </div>
+
+    <div class="feature-cards">
+      <div class="feature-card section-fade">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round">
+            <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 000 20 14.5 14.5 0 000-20"/><line x1="2" y1="12" x2="22" y2="12"/>
+          </svg>
+        </div>
+        <h4>Spatial Targeting</h4>
+        <p>Electrodes placed precisely over Broca's Area (F7/F8), Motor Cortex (C3/C4), and Wernicke's Area (T7/T8) capture speech-related neural activity with minimal noise contamination.</p>
+      </div>
+      <div class="feature-card section-fade">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round">
+            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>
+          </svg>
+        </div>
+        <h4>Neural Decoding</h4>
+        <p>EEGNet temporal-spatial convolutional architecture processes raw EEG signals through depthwise separable convolutions, extracting frequency-specific spatial patterns unique to inner speech.</p>
+      </div>
+      <div class="feature-card section-fade">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+        </div>
+        <h4>Error Correction</h4>
+        <p>Large Language Model post-processing with majority vote boosts raw decoder accuracy from 26% to 35.7% — a 37% relative improvement through contextual error correction and temporal smoothing.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════
+     HARDWARE
+     ════════════════════════════════════════════════════ -->
+<section id="hardware" class="section-fade">
+  <div class="container">
+    <h2 class="section-title">The <span class="accent">Hardware</span></h2>
+    <p class="section-desc">Consumer-grade neural interface, clinical-grade results</p>
+
+    <div class="hardware-viz">
+      <svg id="headset-svg" viewBox="0 0 560 340" xmlns="http://www.w3.org/2000/svg">
+        <!-- Headband Arc -->
+        <path d="M80 240 Q80 60 280 50 Q480 60 480 240" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="3" stroke-linecap="round"/>
+        <!-- Inner band -->
+        <path d="M100 235 Q100 80 280 70 Q460 80 460 235" fill="none" stroke="rgba(0,212,255,0.1)" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+        <!-- Head silhouette (subtle) -->
+        <ellipse cx="280" cy="190" rx="150" ry="130" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+        <!-- Nose hint -->
+        <path d="M270 62 L280 50 L290 62" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1.5" stroke-linecap="round"/>
+
+        <!-- Electrodes with labels -->
+        <!-- F7 -->
+        <circle class="headset-electrode" cx="145" cy="120" r="7" fill="rgba(124,58,237,0.5)" stroke="var(--purple)" stroke-width="1.5" style="animation: electrodePulse 3s infinite 0s"/>
+        <text class="headset-label" x="145" y="103" text-anchor="middle" fill="var(--purple)">F7</text>
+        <text x="64" y="110" font-size="9" fill="var(--muted)" font-family="system-ui" text-anchor="end">Broca's Area</text>
+        <line x1="68" y1="108" x2="135" y2="118" stroke="rgba(124,58,237,0.2)" stroke-width="1" stroke-dasharray="3 3"/>
+
+        <!-- F8 -->
+        <circle class="headset-electrode" cx="415" cy="120" r="7" fill="rgba(124,58,237,0.5)" stroke="var(--purple)" stroke-width="1.5" style="animation: electrodePulse 3s infinite 0.4s"/>
+        <text class="headset-label" x="415" y="103" text-anchor="middle" fill="var(--purple)">F8</text>
+        <text x="496" y="110" font-size="9" fill="var(--muted)" font-family="system-ui">Broca's Area</text>
+        <line x1="425" y1="118" x2="492" y2="108" stroke="rgba(124,58,237,0.2)" stroke-width="1" stroke-dasharray="3 3"/>
+
+        <!-- Fz -->
+        <circle class="headset-electrode" cx="280" cy="85" r="7" fill="rgba(0,212,255,0.5)" stroke="var(--cyan)" stroke-width="1.5" style="animation: electrodePulse 3s infinite 0.8s"/>
+        <text class="headset-label" x="280" y="75" text-anchor="middle" fill="var(--cyan)">Fz</text>
+
+        <!-- Cz -->
+        <circle class="headset-electrode" cx="280" cy="145" r="7" fill="rgba(0,212,255,0.5)" stroke="var(--cyan)" stroke-width="1.5" style="animation: electrodePulse 3s infinite 1.2s"/>
+        <text class="headset-label" x="280" y="135" text-anchor="middle" fill="var(--cyan)">Cz</text>
+        <text x="280" y="170" font-size="9" fill="var(--muted)" font-family="system-ui" text-anchor="middle">Midline Reference</text>
+
+        <!-- C3 -->
+        <circle class="headset-electrode" cx="175" cy="175" r="7" fill="rgba(16,185,129,0.5)" stroke="var(--green)" stroke-width="1.5" style="animation: electrodePulse 3s infinite 1.6s"/>
+        <text class="headset-label" x="175" y="165" text-anchor="middle" fill="var(--green)">C3</text>
+        <text x="64" y="180" font-size="9" fill="var(--muted)" font-family="system-ui" text-anchor="end">Motor Cortex</text>
+        <line x1="68" y1="178" x2="165" y2="175" stroke="rgba(16,185,129,0.2)" stroke-width="1" stroke-dasharray="3 3"/>
+
+        <!-- C4 -->
+        <circle class="headset-electrode" cx="385" cy="175" r="7" fill="rgba(16,185,129,0.5)" stroke="var(--green)" stroke-width="1.5" style="animation: electrodePulse 3s infinite 2s"/>
+        <text class="headset-label" x="385" y="165" text-anchor="middle" fill="var(--green)">C4</text>
+        <text x="496" y="180" font-size="9" fill="var(--muted)" font-family="system-ui">Motor Cortex</text>
+        <line x1="395" y1="175" x2="492" y2="178" stroke="rgba(16,185,129,0.2)" stroke-width="1" stroke-dasharray="3 3"/>
+
+        <!-- T7 -->
+        <circle class="headset-electrode" cx="120" cy="210" r="7" fill="rgba(239,68,68,0.5)" stroke="var(--red)" stroke-width="1.5" style="animation: electrodePulse 3s infinite 2.4s"/>
+        <text class="headset-label" x="120" y="230" text-anchor="middle" fill="var(--red)">T7</text>
+        <text x="64" y="240" font-size="9" fill="var(--muted)" font-family="system-ui" text-anchor="end">Wernicke's</text>
+        <line x1="68" y1="238" x2="115" y2="218" stroke="rgba(239,68,68,0.2)" stroke-width="1" stroke-dasharray="3 3"/>
+
+        <!-- T8 -->
+        <circle class="headset-electrode" cx="440" cy="210" r="7" fill="rgba(239,68,68,0.5)" stroke="var(--red)" stroke-width="1.5" style="animation: electrodePulse 3s infinite 2.8s"/>
+        <text class="headset-label" x="440" y="230" text-anchor="middle" fill="var(--red)">T8</text>
+        <text x="496" y="240" font-size="9" fill="var(--muted)" font-family="system-ui">Wernicke's</text>
+        <line x1="445" y1="218" x2="492" y2="238" stroke="rgba(239,68,68,0.2)" stroke-width="1" stroke-dasharray="3 3"/>
+
+        <!-- Legend -->
+        <circle cx="180" cy="310" r="5" fill="rgba(124,58,237,0.5)" stroke="var(--purple)" stroke-width="1"/>
+        <text x="190" y="314" font-size="9" fill="var(--muted)" font-family="system-ui">Speech Production</text>
+        <circle cx="290" cy="310" r="5" fill="rgba(16,185,129,0.5)" stroke="var(--green)" stroke-width="1"/>
+        <text x="300" y="314" font-size="9" fill="var(--muted)" font-family="system-ui">Motor Cortex</text>
+        <circle cx="390" cy="310" r="5" fill="rgba(239,68,68,0.5)" stroke="var(--red)" stroke-width="1"/>
+        <text x="400" y="314" font-size="9" fill="var(--muted)" font-family="system-ui">Comprehension</text>
+      </svg>
+    </div>
+
+    <div class="comparison-table-wrap section-fade">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th class="tribe-col">TRIBE BCI</th>
+            <th>Clinical EEG</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Channels</td>
+            <td class="tribe-col">8 <span class="winner-badge">Targeted</span></td>
+            <td class="clinical-col">128</td>
+          </tr>
+          <tr>
+            <td>Cost</td>
+            <td class="tribe-col">$800 <span class="winner-badge">63x cheaper</span></td>
+            <td class="clinical-col">$50,000</td>
+          </tr>
+          <tr>
+            <td>Setup Time</td>
+            <td class="tribe-col">2 min</td>
+            <td class="clinical-col">45 min</td>
+          </tr>
+          <tr>
+            <td>Accuracy</td>
+            <td class="tribe-col">30.5% <span class="winner-badge">p=0.045</span></td>
+            <td class="clinical-col">28.0%</td>
+          </tr>
+          <tr>
+            <td>Portable</td>
+            <td class="tribe-col">Yes</td>
+            <td class="clinical-col">No</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="cta-wrap">
+      <button class="btn-cta" onclick="alert('Development Kit request noted. Contact: team@tribebci.com')">Order Development Kit</button>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════
+     FOOTER
+     ════════════════════════════════════════════════════ -->
+<footer id="footer">
+  <canvas id="footer-canvas"></canvas>
+  <div class="footer-content">
+    <div class="footer-brand"><span class="tribe">TRIBE</span> <span class="bci">BCI</span></div>
+    <div class="footer-copy">&copy; 2026 TRIBE BCI. All rights reserved.</div>
+    <div class="footer-powered">Powered by TRIBE v2 Neural Architecture</div>
+  </div>
+</footer>
+
+<!-- ════════════════════════════════════════════════════
+     JAVASCRIPT
+     ════════════════════════════════════════════════════ -->
+<script>
+(function() {
+'use strict';
+
+/* ═══════════════════════════════════════════════════════
+   1. NEURAL NETWORK BACKGROUND (Hero Canvas)
+   ═══════════════════════════════════════════════════════ */
+const heroCanvas = document.getElementById('hero-canvas');
+const heroCtx = heroCanvas.getContext('2d');
+let particles = [];
+const PARTICLE_COUNT = 80;
+const CONNECTION_DIST = 150;
+
+class Particle {
+  constructor(w, h) {
+    this.x = Math.random() * w;
+    this.y = Math.random() * h;
+    this.vx = (Math.random() - 0.5) * 0.4;
+    this.vy = (Math.random() - 0.5) * 0.4;
+    this.r = 1.5 + Math.random() * 1;
+    this.alpha = 0.3 + Math.random() * 0.4;
+    this.pulsePhase = Math.random() * Math.PI * 2;
+  }
+  update(w, h, t) {
+    this.x += this.vx;
+    this.y += this.vy;
+    if (this.x < 0 || this.x > w) this.vx *= -1;
+    if (this.y < 0 || this.y > h) this.vy *= -1;
+    this.currentAlpha = this.alpha * (0.7 + 0.3 * Math.sin(t * 0.001 + this.pulsePhase));
+  }
+}
+
+function resizeHeroCanvas() {
+  heroCanvas.width = heroCanvas.offsetWidth * devicePixelRatio;
+  heroCanvas.height = heroCanvas.offsetHeight * devicePixelRatio;
+  heroCtx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+}
+
+function initParticles() {
+  const w = heroCanvas.offsetWidth, h = heroCanvas.offsetHeight;
+  particles = [];
+  for (let i = 0; i < PARTICLE_COUNT; i++) particles.push(new Particle(w, h));
+}
+
+function drawHero(t) {
+  const w = heroCanvas.offsetWidth, h = heroCanvas.offsetHeight;
+  heroCtx.clearRect(0, 0, w, h);
+
+  // Update
+  for (const p of particles) p.update(w, h, t);
+
+  // Connections
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i + 1; j < particles.length; j++) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < CONNECTION_DIST) {
+        const alpha = (1 - dist / CONNECTION_DIST) * 0.15;
+        heroCtx.beginPath();
+        heroCtx.moveTo(particles[i].x, particles[i].y);
+        heroCtx.lineTo(particles[j].x, particles[j].y);
+        heroCtx.strokeStyle = `rgba(0,212,255,${alpha})`;
+        heroCtx.lineWidth = 0.5;
+        heroCtx.stroke();
+      }
+    }
+  }
+
+  // Particles
+  for (const p of particles) {
+    heroCtx.beginPath();
+    heroCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    heroCtx.fillStyle = `rgba(0,212,255,${p.currentAlpha})`;
+    heroCtx.fill();
+  }
+
+  requestAnimationFrame(drawHero);
+}
+
+window.addEventListener('resize', () => { resizeHeroCanvas(); initParticles(); });
+resizeHeroCanvas();
+initParticles();
+requestAnimationFrame(drawHero);
+
+/* Footer mini neural pattern */
+const footerCanvas = document.getElementById('footer-canvas');
+const fCtx = footerCanvas.getContext('2d');
+let fParticles = [];
+function resizeFooter() {
+  footerCanvas.width = footerCanvas.offsetWidth * devicePixelRatio;
+  footerCanvas.height = footerCanvas.offsetHeight * devicePixelRatio;
+  fCtx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  fParticles = [];
+  const w = footerCanvas.offsetWidth, h = footerCanvas.offsetHeight;
+  for (let i = 0; i < 30; i++) fParticles.push(new Particle(w, h));
+}
+function drawFooter(t) {
+  const w = footerCanvas.offsetWidth, h = footerCanvas.offsetHeight;
+  fCtx.clearRect(0, 0, w, h);
+  for (const p of fParticles) p.update(w, h, t);
+  for (let i = 0; i < fParticles.length; i++) {
+    for (let j = i + 1; j < fParticles.length; j++) {
+      const dx = fParticles[i].x - fParticles[j].x;
+      const dy = fParticles[i].y - fParticles[j].y;
+      const d = Math.sqrt(dx*dx+dy*dy);
+      if (d < 120) {
+        fCtx.beginPath();
+        fCtx.moveTo(fParticles[i].x, fParticles[i].y);
+        fCtx.lineTo(fParticles[j].x, fParticles[j].y);
+        fCtx.strokeStyle = `rgba(0,212,255,${(1-d/120)*0.15})`;
+        fCtx.lineWidth = 0.5;
+        fCtx.stroke();
+      }
+    }
+  }
+  for (const p of fParticles) {
+    fCtx.beginPath(); fCtx.arc(p.x, p.y, 1, 0, Math.PI*2);
+    fCtx.fillStyle = `rgba(0,212,255,${p.currentAlpha*0.5})`;
+    fCtx.fill();
+  }
+  requestAnimationFrame(drawFooter);
+}
+window.addEventListener('resize', resizeFooter);
+resizeFooter();
+requestAnimationFrame(drawFooter);
+
+
+/* ═══════════════════════════════════════════════════════
+   2. SMOOTH SCROLLING & SECTION TRACKING
+   ═══════════════════════════════════════════════════════ */
+const navLinks = document.querySelectorAll('.nav-links a');
+const sections = ['dashboard', 'calibrate', 'technology', 'hardware'];
+const sectionEls = sections.map(id => document.getElementById(id));
+
+function updateActiveNav() {
+  const scrollY = window.scrollY + 120;
+  let current = '';
+  for (const sec of sectionEls) {
+    if (sec && sec.offsetTop <= scrollY) current = sec.id;
+  }
+  navLinks.forEach(link => {
+    link.classList.toggle('active', link.getAttribute('data-section') === current);
+  });
+}
+window.addEventListener('scroll', updateActiveNav, { passive: true });
+
+// Hamburger menu
+const hamburger = document.getElementById('hamburger');
+const navLinksEl = document.getElementById('navLinks');
+hamburger.addEventListener('click', () => {
+  navLinksEl.classList.toggle('open');
+});
+navLinks.forEach(link => link.addEventListener('click', () => navLinksEl.classList.remove('open')));
+
+/* ═══════════════════════════════════════════════════════
+   3. INTERSECTION OBSERVER (Fade-in + Chart Animation)
+   ═══════════════════════════════════════════════════════ */
+let chartAnimated = false;
+const fadeObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      // Trigger chart animation if technology section
+      if (entry.target.id === 'technology' && !chartAnimated) {
+        chartAnimated = true;
+        animateAccuracyChart();
+      }
+    }
+  });
+}, { threshold: 0.15 });
+
+document.querySelectorAll('.section-fade').forEach(el => fadeObserver.observe(el));
+
+
+/* ═══════════════════════════════════════════════════════
+   4. EEG WAVEFORM RENDERER
+   ═══════════════════════════════════════════════════════ */
+const eegCanvas = document.getElementById('eeg-canvas');
+const eegCtx = eegCanvas.getContext('2d');
+const CHANNELS = ['F7', 'F8', 'C3', 'C4', 'T7', 'T8', 'Fz', 'Cz'];
+const CH_COLORS = [
+  'rgba(124,58,237,0.9)',   // F7 purple
+  'rgba(147,82,255,0.9)',   // F8 lighter purple
+  'rgba(16,185,129,0.9)',   // C3 green
+  'rgba(52,211,153,0.9)',   // C4 lighter green
+  'rgba(239,68,68,0.85)',   // T7 red
+  'rgba(248,113,113,0.85)', // T8 lighter red
+  'rgba(0,212,255,0.9)',    // Fz cyan
+  'rgba(56,189,248,0.9)',   // Cz lighter cyan
+];
+const EEG_BUFFER_SIZE = 150; // 5 seconds at 30Hz
+const eegBuffer = CHANNELS.map(() => new Float32Array(EEG_BUFFER_SIZE));
+let eegWriteIdx = 0;
+
+// Generate realistic EEG-like data with alpha/beta oscillations
+function generateEEG(ch, t) {
+  // Alpha rhythm (8-12 Hz) — dominant
+  const alpha = Math.sin(2 * Math.PI * (10 + ch * 0.3) * t / 1000) * (15 + ch * 2);
+  // Beta rhythm (13-30 Hz)
+  const beta = Math.sin(2 * Math.PI * (20 + ch * 0.7) * t / 1000) * 6;
+  // Theta rhythm (4-8 Hz) — slow
+  const theta = Math.sin(2 * Math.PI * (6 + ch * 0.2) * t / 1000) * 8;
+  // Muscle artifact (EMG-like noise)
+  const noise = (Math.random() - 0.5) * 8;
+  // Slow drift
+  const drift = Math.sin(2 * Math.PI * 0.3 * t / 1000 + ch) * 5;
+  // Occasional spike
+  const spike = Math.random() < 0.003 ? (Math.random() - 0.5) * 60 : 0;
+
+  return alpha + beta + theta + noise + drift + spike;
+}
+
+function resizeEEG() {
+  eegCanvas.width = eegCanvas.offsetWidth * devicePixelRatio;
+  eegCanvas.height = eegCanvas.offsetHeight * devicePixelRatio;
+  eegCtx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+}
+
+function drawEEG(t) {
+  const w = eegCanvas.offsetWidth;
+  const h = eegCanvas.offsetHeight;
+  const chHeight = h / 8;
+  const padding = 50;
+  const drawWidth = w - padding;
+
+  eegCtx.fillStyle = '#060612';
+  eegCtx.fillRect(0, 0, w, h);
+
+  // Grid lines
+  eegCtx.strokeStyle = 'rgba(255,255,255,0.03)';
+  eegCtx.lineWidth = 0.5;
+  for (let i = 1; i < 8; i++) {
+    eegCtx.beginPath();
+    eegCtx.moveTo(padding, i * chHeight);
+    eegCtx.lineTo(w, i * chHeight);
+    eegCtx.stroke();
+  }
+  // Vertical grid (time markers)
+  for (let x = padding; x < w; x += (drawWidth / 5)) {
+    eegCtx.beginPath();
+    eegCtx.moveTo(x, 0);
+    eegCtx.lineTo(x, h);
+    eegCtx.stroke();
+  }
+
+  // Update buffer with new sample (only if no WebSocket data)
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    for (let ch = 0; ch < 8; ch++) {
+      eegBuffer[ch][eegWriteIdx % EEG_BUFFER_SIZE] = generateEEG(ch, t);
+    }
+    eegWriteIdx++;
+  }
+
+  // Draw waveforms
+  for (let ch = 0; ch < 8; ch++) {
+    const centerY = chHeight * ch + chHeight / 2;
+
+    // Channel label
+    eegCtx.fillStyle = CH_COLORS[ch];
+    eegCtx.font = '11px ' + getComputedStyle(document.body).getPropertyValue('--mono').trim().split(',')[0] || 'monospace';
+    eegCtx.textAlign = 'left';
+    eegCtx.textBaseline = 'middle';
+    eegCtx.fillText(CHANNELS[ch], 8, centerY);
+
+    // uV scale
+    eegCtx.fillStyle = 'rgba(255,255,255,0.15)';
+    eegCtx.font = '8px system-ui';
+    eegCtx.fillText('±50µV', 8, centerY + 18);
+
+    // Waveform
+    eegCtx.beginPath();
+    eegCtx.strokeStyle = CH_COLORS[ch];
+    eegCtx.lineWidth = 1.2;
+    const bufLen = Math.min(eegWriteIdx, EEG_BUFFER_SIZE);
+
+    for (let i = 0; i < bufLen; i++) {
+      const idx = (eegWriteIdx - bufLen + i) % EEG_BUFFER_SIZE;
+      if (idx < 0) continue;
+      const x = padding + (i / EEG_BUFFER_SIZE) * drawWidth;
+      const y = centerY + eegBuffer[ch][(idx + EEG_BUFFER_SIZE) % EEG_BUFFER_SIZE] * (chHeight * 0.012);
+      if (i === 0) eegCtx.moveTo(x, y);
+      else eegCtx.lineTo(x, y);
+    }
+    eegCtx.stroke();
+  }
+
+  // Time labels at bottom
+  eegCtx.fillStyle = 'rgba(255,255,255,0.2)';
+  eegCtx.font = '9px system-ui';
+  eegCtx.textAlign = 'center';
+  for (let i = 0; i <= 5; i++) {
+    const x = padding + (i / 5) * drawWidth;
+    eegCtx.fillText(`${i}s`, x, h - 4);
+  }
+
+  requestAnimationFrame(drawEEG);
+}
+
+window.addEventListener('resize', resizeEEG);
+resizeEEG();
+requestAnimationFrame(drawEEG);
+
+
+/* ═══════════════════════════════════════════════════════
+   5. SPARKLINE (Accuracy stat card)
+   ═══════════════════════════════════════════════════════ */
+const sparkCanvas = document.getElementById('sparkCanvas');
+const sparkCtx = sparkCanvas.getContext('2d');
+const sparkData = [];
+for (let i = 0; i < 30; i++) sparkData.push(28 + Math.random() * 5);
+
+function drawSparkline() {
+  const w = sparkCanvas.offsetWidth;
+  const h = sparkCanvas.offsetHeight;
+  sparkCanvas.width = w * devicePixelRatio;
+  sparkCanvas.height = h * devicePixelRatio;
+  sparkCtx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+
+  // Shift data
+  sparkData.shift();
+  sparkData.push(28 + Math.random() * 6);
+
+  const min = 25, max = 36;
+  sparkCtx.beginPath();
+  sparkCtx.strokeStyle = 'rgba(0,212,255,0.7)';
+  sparkCtx.lineWidth = 1.5;
+  for (let i = 0; i < sparkData.length; i++) {
+    const x = (i / (sparkData.length - 1)) * w;
+    const y = h - ((sparkData[i] - min) / (max - min)) * h;
+    if (i === 0) sparkCtx.moveTo(x, y);
+    else sparkCtx.lineTo(x, y);
+  }
+  sparkCtx.stroke();
+
+  // Gradient fill
+  const grad = sparkCtx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, 'rgba(0,212,255,0.15)');
+  grad.addColorStop(1, 'rgba(0,212,255,0)');
+  sparkCtx.lineTo(w, h);
+  sparkCtx.lineTo(0, h);
+  sparkCtx.closePath();
+  sparkCtx.fillStyle = grad;
+  sparkCtx.fill();
+}
+setInterval(drawSparkline, 1000);
+drawSparkline();
+
+
+/* ═══════════════════════════════════════════════════════
+   6. BRAIN MAP TOOLTIPS
+   ═══════════════════════════════════════════════════════ */
+const tooltip = document.getElementById('brainTooltip');
+document.querySelectorAll('.electrode').forEach(el => {
+  el.addEventListener('mouseenter', (e) => {
+    const ch = el.getAttribute('data-channel');
+    const region = el.getAttribute('data-region');
+    tooltip.querySelector('.tt-channel').textContent = ch;
+    tooltip.querySelector('.tt-region').textContent = region;
+    tooltip.style.display = 'block';
+    const rect = el.getBoundingClientRect();
+    tooltip.style.left = rect.left + rect.width / 2 - tooltip.offsetWidth / 2 + 'px';
+    tooltip.style.top = rect.top - tooltip.offsetHeight - 10 + 'px';
+  });
+  el.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+});
+
+
+/* ═══════════════════════════════════════════════════════
+   7. ACCURACY BAR CHART (Technology Section)
+   ═══════════════════════════════════════════════════════ */
+const accChart = document.getElementById('accuracy-chart');
+const accCtx = accChart.getContext('2d');
+const channelConfigs = [
+  { label: '4ch', value: 28.0 },
+  { label: '8ch', value: 30.5, winner: true },
+  { label: '16ch', value: 25.5 },
+  { label: '32ch', value: 25.5 },
+  { label: '64ch', value: 28.0 },
+  { label: '128ch', value: 28.0 },
+];
+
+function resizeAccChart() {
+  accChart.width = accChart.offsetWidth * devicePixelRatio;
+  accChart.height = accChart.offsetHeight * devicePixelRatio;
+  accCtx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+}
+
+let chartProgress = 0;
+function drawAccuracyChart() {
+  const w = accChart.offsetWidth;
+  const h = accChart.offsetHeight;
+  resizeAccChart();
+
+  const padL = 50, padR = 20, padT = 20, padB = 50;
+  const chartW = w - padL - padR;
+  const chartH = h - padT - padB;
+  const barW = chartW / channelConfigs.length * 0.55;
+  const gap = chartW / channelConfigs.length;
+  const minVal = 20, maxVal = 38;
+
+  accCtx.clearRect(0, 0, w, h);
+
+  // Y-axis labels & gridlines
+  accCtx.fillStyle = 'rgba(255,255,255,0.3)';
+  accCtx.font = '11px system-ui';
+  accCtx.textAlign = 'right';
+  accCtx.textBaseline = 'middle';
+  for (let v = 20; v <= 36; v += 4) {
+    const y = padT + chartH - ((v - minVal) / (maxVal - minVal)) * chartH;
+    accCtx.fillText(v + '%', padL - 10, y);
+    accCtx.beginPath();
+    accCtx.moveTo(padL, y);
+    accCtx.lineTo(w - padR, y);
+    accCtx.strokeStyle = 'rgba(255,255,255,0.05)';
+    accCtx.lineWidth = 1;
+    accCtx.stroke();
+  }
+
+  // Chance line (25%)
+  const chanceY = padT + chartH - ((25 - minVal) / (maxVal - minVal)) * chartH;
+  accCtx.beginPath();
+  accCtx.setLineDash([6, 4]);
+  accCtx.moveTo(padL, chanceY);
+  accCtx.lineTo(w - padR, chanceY);
+  accCtx.strokeStyle = 'rgba(239,68,68,0.5)';
+  accCtx.lineWidth = 1.5;
+  accCtx.stroke();
+  accCtx.setLineDash([]);
+  accCtx.fillStyle = 'rgba(239,68,68,0.7)';
+  accCtx.textAlign = 'left';
+  accCtx.fillText('Chance (25%)', padL + 4, chanceY - 8);
+
+  // Bars
+  for (let i = 0; i < channelConfigs.length; i++) {
+    const cfg = channelConfigs[i];
+    const x = padL + i * gap + (gap - barW) / 2;
+    const rawH = ((cfg.value - minVal) / (maxVal - minVal)) * chartH;
+    const barH = rawH * Math.min(chartProgress, 1);
+    const y = padT + chartH - barH;
+
+    // Bar fill
+    if (cfg.winner) {
+      const grad = accCtx.createLinearGradient(x, y, x, padT + chartH);
+      grad.addColorStop(0, 'rgba(0,212,255,0.9)');
+      grad.addColorStop(1, 'rgba(0,212,255,0.4)');
+      accCtx.fillStyle = grad;
+      // Glow
+      accCtx.shadowColor = 'rgba(0,212,255,0.4)';
+      accCtx.shadowBlur = 15;
+    } else {
+      accCtx.fillStyle = 'rgba(124,58,237,0.5)';
+      accCtx.shadowColor = 'transparent';
+      accCtx.shadowBlur = 0;
+    }
+
+    // Draw rounded bar
+    const radius = 4;
+    accCtx.beginPath();
+    accCtx.moveTo(x + radius, y);
+    accCtx.lineTo(x + barW - radius, y);
+    accCtx.quadraticCurveTo(x + barW, y, x + barW, y + radius);
+    accCtx.lineTo(x + barW, padT + chartH);
+    accCtx.lineTo(x, padT + chartH);
+    accCtx.lineTo(x, y + radius);
+    accCtx.quadraticCurveTo(x, y, x + radius, y);
+    accCtx.fill();
+    accCtx.shadowBlur = 0;
+
+    // Value label on top
+    if (chartProgress >= 1) {
+      accCtx.fillStyle = cfg.winner ? 'rgba(0,212,255,1)' : 'rgba(255,255,255,0.5)';
+      accCtx.font = cfg.winner ? 'bold 12px system-ui' : '11px system-ui';
+      accCtx.textAlign = 'center';
+      accCtx.fillText(cfg.value.toFixed(1) + '%', x + barW / 2, y - 8);
+      if (cfg.winner) {
+        accCtx.fillStyle = 'rgba(0,212,255,0.7)';
+        accCtx.font = '9px system-ui';
+        accCtx.fillText('p=0.045 *', x + barW / 2, y - 22);
+      }
+    }
+
+    // X-axis label
+    accCtx.fillStyle = cfg.winner ? 'rgba(0,212,255,0.9)' : 'rgba(255,255,255,0.4)';
+    accCtx.font = cfg.winner ? 'bold 12px system-ui' : '11px system-ui';
+    accCtx.textAlign = 'center';
+    accCtx.fillText(cfg.label, x + barW / 2, padT + chartH + 20);
+  }
+}
+
+function animateAccuracyChart() {
+  chartProgress = 0;
+  const startTime = performance.now();
+  const duration = 1200;
+  function step(now) {
+    chartProgress = Math.min((now - startTime) / duration, 1);
+    // Ease out
+    chartProgress = 1 - Math.pow(1 - chartProgress, 3);
+    drawAccuracyChart();
+    if (chartProgress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+// Initial draw (empty state)
+resizeAccChart();
+drawAccuracyChart();
+window.addEventListener('resize', () => { resizeAccChart(); if (chartAnimated) { chartProgress = 1; drawAccuracyChart(); } });
+
+
+/* ═══════════════════════════════════════════════════════
+   8. WEBSOCKET & DASHBOARD STATE
+   ═══════════════════════════════════════════════════════ */
+let ws = null;
+let wsReconnectDelay = 1000;
+let sessionStart = null;
+let sessionTimer = null;
+let wordsDecoded = 0;
+let decodedWords = [];
+const statusDot = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+
+function connectWebSocket() {
+  try {
+    ws = new WebSocket('ws://localhost:8000/ws/eeg');
+  } catch(e) {
+    console.log('WebSocket not available, running in demo mode');
+    startDemoMode();
+    return;
+  }
+
+  ws.onopen = () => {
+    statusDot.classList.remove('disconnected');
+    statusText.textContent = 'Connected';
+    wsReconnectDelay = 1000;
+  };
+
+  ws.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.ch) handleEEGData(data.ch);
+      if (data.pred) {
+        const words = ['UP','DOWN','LEFT','RIGHT'];
+        const conf = {};
+        words.forEach((w,i) => conf[w] = data.pred.probs[i]);
+        handlePrediction({ word: data.pred.word, confidence: conf });
+      }
+    } catch(e) {}
+  };
+
+  ws.onclose = () => {
+    statusDot.classList.add('disconnected');
+    statusText.textContent = 'Reconnecting...';
+    setTimeout(() => {
+      wsReconnectDelay = Math.min(wsReconnectDelay * 2, 16000);
+      connectWebSocket();
+    }, wsReconnectDelay);
+  };
+
+  ws.onerror = () => {
+    ws.close();
+    startDemoMode();
+  };
+}
+
+function handleEEGData(data) {
+  // data: array of 8 channel values
+  if (Array.isArray(data) && data.length === 8) {
+    for (let ch = 0; ch < 8; ch++) {
+      eegBuffer[ch][eegWriteIdx % EEG_BUFFER_SIZE] = data[ch];
+    }
+    eegWriteIdx++;
+  }
+}
+
+function handlePrediction(pred) {
+  addDecodedWord(pred.word, pred.confidence);
+  updateConfidenceBars(pred.confidence, pred.word);
+  flashBrainRegion(pred.word);
+  triggerLLMCorrection(pred.word, pred.confidence);
+}
+
+/* ═══════════════════════════════════════════════════════
+   LLM ERROR CORRECTION VISUAL ("The Snap")
+   ═══════════════════════════════════════════════════════ */
+const LLM_SENTENCE_PAIRS = [
+  { raw: "Burn off the left",         corrected: "Turn off the light",       boost: 87 },
+  { raw: "I wand to go up",           corrected: "I want to go up",          boost: 92 },
+  { raw: "Moov the curser write",     corrected: "Move the cursor right",    boost: 84 },
+  { raw: "Scroll the paje done",      corrected: "Scroll the page down",     boost: 89 },
+  { raw: "Open a knew windoe",        corrected: "Open a new window",        boost: 91 },
+  { raw: "Cloze the applycation",     corrected: "Close the application",    boost: 86 },
+  { raw: "Tiep hello word",           corrected: "Type hello world",         boost: 93 },
+  { raw: "Sned the mesage",           corrected: "Send the message",         boost: 88 },
+  { raw: "Go leff then up",           corrected: "Go left then up",          boost: 90 },
+  { raw: "Navygate to setings",       corrected: "Navigate to settings",     boost: 85 },
+  { raw: "Plae the next song",        corrected: "Play the next song",       boost: 94 },
+  { raw: "Rede my last emale",        corrected: "Read my last email",       boost: 87 },
+  { raw: "Delet the fyile",           corrected: "Delete the file",          boost: 91 },
+  { raw: "Zoom in on the mapp",       corrected: "Zoom in on the map",       boost: 88 },
+  { raw: "Call mom rite now",          corrected: "Call mom right now",        boost: 95 },
+];
+let llmPairIdx = 0;
+let llmAnimating = false;
+
+function triggerLLMCorrection(word, confidence) {
+  if (llmAnimating) return;
+  llmAnimating = true;
+
+  const pair = LLM_SENTENCE_PAIRS[llmPairIdx % LLM_SENTENCE_PAIRS.length];
+  llmPairIdx++;
+
+  const panel = document.getElementById('llmPanel');
+  const content = document.getElementById('llmContent');
+  panel.classList.add('active');
+
+  content.innerHTML = `
+    <div class="llm-stage">
+      <div class="llm-label llm-label-raw">Raw Neural Signal</div>
+      <div class="llm-text-raw" id="llmRaw"></div>
+    </div>
+    <div class="llm-arrow" id="llmArrow">&#x2193; LLM Processing...</div>
+    <div class="llm-stage">
+      <div class="llm-label llm-label-corrected">LLM Corrected</div>
+      <div class="llm-text-corrected" id="llmCorrected"></div>
+    </div>
+  `;
+
+  const rawEl = document.getElementById('llmRaw');
+  const arrowEl = document.getElementById('llmArrow');
+  const correctedEl = document.getElementById('llmCorrected');
+
+  // Phase 1: Type out raw text character by character
+  let charIdx = 0;
+  const rawText = pair.raw;
+  const typeInterval = setInterval(() => {
+    charIdx++;
+    rawEl.textContent = rawText.slice(0, charIdx);
+    if (charIdx >= rawText.length) {
+      clearInterval(typeInterval);
+
+      // Phase 2: Show arrow after brief pause
+      setTimeout(() => {
+        arrowEl.classList.add('visible');
+
+        // Phase 3: Snap to corrected after 0.5s
+        setTimeout(() => {
+          arrowEl.innerHTML = '&#x2193; Corrected';
+          correctedEl.textContent = pair.corrected;
+          correctedEl.classList.add('visible', 'llm-snap');
+
+          // Show boost badge
+          setTimeout(() => {
+            const boostEl = document.createElement('div');
+            boostEl.className = 'llm-boost llm-snap';
+            boostEl.innerHTML = `&#x2713; ${pair.boost}% confidence &mdash; ${Math.round(pair.boost * 0.37)}% error reduction`;
+            correctedEl.parentElement.appendChild(boostEl);
+            llmAnimating = false;
+          }, 400);
+        }, 500);
+      }, 300);
+    }
+  }, 35);
+}
+
+function addDecodedWord(word, conf) {
+  wordsDecoded++;
+  decodedWords.push({ word, confidence: conf[word] || 0.3 });
+  document.getElementById('statWords').textContent = wordsDecoded;
+  document.getElementById('decodedCount').textContent = wordsDecoded + ' words';
+
+  // Update sentence
+  const sentenceEl = document.getElementById('decodedSentence');
+  sentenceEl.innerHTML = decodedWords.map((w, i) =>
+    `<span class="decoded-word" style="animation-delay:${i === decodedWords.length-1 ? '0s' : 'none'}; ${i < decodedWords.length-1 ? 'animation:none;' : ''}">${w.word}</span>`
+  ).join(' ');
+
+  // Add to history
+  const histEl = document.getElementById('decodedHistory');
+  const item = document.createElement('div');
+  item.className = 'decoded-item';
+  const confPct = Math.round((conf[word] || 0.3) * 100);
+  item.innerHTML = `
+    <span class="decoded-item-word">${word}</span>
+    <div class="decoded-item-bar-bg"><div class="decoded-item-bar" style="width:${confPct}%"></div></div>
+    <span class="decoded-item-conf">${confPct}%</span>
+  `;
+  histEl.insertBefore(item, histEl.firstChild);
+  if (histEl.children.length > 15) histEl.removeChild(histEl.lastChild);
+}
+
+function updateConfidenceBars(conf, winner) {
+  const classes = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
+  classes.forEach(cls => {
+    const val = conf[cls] || 0.25;
+    const pct = Math.round(val * 100);
+    const bar = document.getElementById('conf' + cls.charAt(0) + cls.slice(1).toLowerCase());
+    const valEl = document.getElementById('conf' + cls.charAt(0) + cls.slice(1).toLowerCase() + 'Val');
+    const row = document.querySelector(`.conf-row[data-class="${cls}"]`);
+
+    bar.style.width = pct + '%';
+    bar.className = 'conf-bar' + (cls === winner ? ' winner' : '');
+    valEl.textContent = pct + '%';
+    valEl.className = 'conf-value' + (cls === winner ? ' winner' : '');
+    row.querySelector('.conf-label').className = 'conf-label' + (cls === winner ? ' active' : '');
+  });
+}
+
+function flashBrainRegion(word) {
+  // Map word to relevant electrodes
+  const regionMap = {
+    'UP': ['el-Fz', 'el-Cz', 'el-C3', 'el-C4'],
+    'DOWN': ['el-Fz', 'el-Cz', 'el-C3', 'el-C4'],
+    'LEFT': ['el-F7', 'el-T7', 'el-C3'],
+    'RIGHT': ['el-F8', 'el-T8', 'el-C4'],
+  };
+  const electrodes = regionMap[word] || [];
+  electrodes.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const origR = el.getAttribute('r');
+    const origOpacity = el.style.opacity;
+    el.setAttribute('r', '14');
+    el.style.opacity = '1';
+    el.style.filter = 'brightness(2) drop-shadow(0 0 8px rgba(0,212,255,0.8))';
+    setTimeout(() => {
+      el.setAttribute('r', origR || '8');
+      el.style.opacity = origOpacity || '';
+      el.style.filter = '';
+    }, 600);
+  });
+}
+
+
+/* ═══════════════════════════════════════════════════════
+   9. DEMO MODE (Simulated Data for Offline Presentations)
+   ═══════════════════════════════════════════════════════ */
+let demoInterval = null;
+function startDemoMode() {
+  statusDot.classList.remove('disconnected');
+  statusDot.style.background = 'var(--cyan)';
+  statusText.textContent = 'Demo Mode';
+
+  // Simulate predictions every 3-6 seconds
+  if (demoInterval) clearInterval(demoInterval);
+  demoInterval = setInterval(() => {
+    if (!sessionStart) return;
+    const classes = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
+    const winner = classes[Math.floor(Math.random() * classes.length)];
+    const conf = {};
+    let remaining = 1;
+    classes.forEach((cls, i) => {
+      if (cls === winner) {
+        conf[cls] = 0.28 + Math.random() * 0.25;
+        remaining -= conf[cls];
+      } else if (i < classes.length - 1) {
+        conf[cls] = Math.random() * remaining * 0.6;
+        remaining -= conf[cls];
+      } else {
+        conf[cls] = remaining;
+      }
+    });
+    handlePrediction({ word: winner, confidence: conf });
+  }, 3000 + Math.random() * 3000);
+}
+
+
+/* ═══════════════════════════════════════════════════════
+   10. SESSION TIMER
+   ═══════════════════════════════════════════════════════ */
+function startSessionTimer() {
+  if (sessionTimer) clearInterval(sessionTimer);
+  sessionStart = Date.now();
+  sessionTimer = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
+    const min = String(Math.floor(elapsed / 60)).padStart(2, '0');
+    const sec = String(elapsed % 60).padStart(2, '0');
+    document.getElementById('statTime').textContent = min + ':' + sec;
+  }, 1000);
+}
+
+function updateSignalQuality() {
+  const quality = 72 + Math.random() * 16;
+  document.getElementById('statSignal').textContent = Math.round(quality) + '%';
+  document.getElementById('signalBar').style.width = quality + '%';
+}
+setInterval(updateSignalQuality, 2000);
+
+
+/* ═══════════════════════════════════════════════════════
+   11. LAUNCH DASHBOARD
+   ═══════════════════════════════════════════════════════ */
+window.launchDashboard = function() {
+  document.getElementById('dashboard').scrollIntoView({ behavior: 'smooth' });
+  startSessionTimer();
+  connectWebSocket();
+};
+
+
+/* ═══════════════════════════════════════════════════════
+   12. CALIBRATION WIZARD
+   ═══════════════════════════════════════════════════════ */
+let calState = 'idle'; // idle, step1, step2, step3, step4
+
+function showCalStep(step) {
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById('calStep' + i).style.display = i === step ? '' : 'none';
+    const dot = document.getElementById('stepDot' + i);
+    dot.classList.remove('active', 'complete');
+    if (i < step) dot.classList.add('complete');
+    else if (i === step) dot.classList.add('active');
+
+    if (i < 4) {
+      const line = document.getElementById('stepLine' + i);
+      line.classList.toggle('complete', i < step);
+    }
+  }
+}
+
+function animateCalProgress(circleId, timeId, duration, callback) {
+  const circle = document.getElementById(circleId);
+  const timeEl = document.getElementById(timeId);
+  const circumference = 339.29;
+  const start = performance.now();
+
+  function tick(now) {
+    const progress = Math.min((now - start) / duration, 1);
+    circle.style.strokeDashoffset = circumference * (1 - progress);
+    const remaining = Math.ceil((duration / 1000) * (1 - progress));
+    timeEl.textContent = remaining + 's';
+
+    if (progress < 1) {
+      requestAnimationFrame(tick);
+    } else {
+      callback();
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+window.startCalibration = function() {
+  calState = 'step2';
+  showCalStep(2);
+  animateCalProgress('calCircle2', 'calTime2', 5000, () => {
+    calState = 'step3';
+    showCalStep(3);
+    animateCalProgress('calCircle3', 'calTime3', 5000, () => {
+      calState = 'step4';
+      showCalStep(4);
+    });
+  });
+};
+
+window.resetCalibration = function() {
+  calState = 'idle';
+  showCalStep(1);
+  // Reset progress rings
+  document.getElementById('calCircle2').style.strokeDashoffset = '339.29';
+  document.getElementById('calCircle3').style.strokeDashoffset = '339.29';
+  document.getElementById('calTime2').textContent = '5s';
+  document.getElementById('calTime3').textContent = '5s';
+};
+
+
+/* ═══════════════════════════════════════════════════════
+   13. COUNTER ANIMATION (Hero Stats on Load)
+   ═══════════════════════════════════════════════════════ */
+function animateCounter(el, target, suffix, duration) {
+  const start = performance.now();
+  const isFloat = target % 1 !== 0;
+  function tick(now) {
+    const progress = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const val = target * eased;
+    el.textContent = (isFloat ? val.toFixed(1) : Math.round(val)) + suffix;
+    if (progress < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+// Animate hero stats on page load
+setTimeout(() => {
+  const statEls = document.querySelectorAll('.hero-stat-value');
+  animateCounter(statEls[0], 30.5, '%', 1500);
+  animateCounter(statEls[1], 800, '', 1200);
+  statEls[1].textContent = '$0'; // override for dollar prefix workaround
+  const start1 = performance.now();
+  (function tick1(now) {
+    const p = Math.min((now - start1) / 1200, 1);
+    const eased = 1 - Math.pow(1 - p, 3);
+    statEls[1].textContent = '$' + Math.round(800 * eased);
+    if (p < 1) requestAnimationFrame(tick1);
+  })(performance.now());
+  animateCounter(statEls[2], 8, '', 800);
+}, 500);
+
+
+/* ═══════════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════════ */
+// Trigger section fade for any already-visible elements
+setTimeout(() => {
+  document.querySelectorAll('.section-fade').forEach(el => {
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight) el.classList.add('visible');
+  });
+}, 100);
+
+})();
+</script>
+</body>
+</html>
