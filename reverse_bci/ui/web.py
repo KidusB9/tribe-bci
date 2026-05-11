@@ -11,8 +11,6 @@ import numpy as np
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from starlette.requests import Request
 
 try:
     import mne
@@ -236,11 +234,8 @@ app = FastAPI(title="TRIBE BCI", version="1.0.0", lifespan=lifespan)
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
-
-
 @app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
+async def index():
     html_path = TEMPLATES_DIR / "index.html"
     return HTMLResponse(html_path.read_text(encoding="utf-8"))
 
