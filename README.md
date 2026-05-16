@@ -31,6 +31,18 @@
 
 ---
 
+## The Mission: Why TRIBE BCI Exists
+
+My father passed away after suffering a severe left-hemisphere stroke that left him paralyzed. Like millions of stroke survivors and ALS patients, the physical pathways connecting his brain to his body were damaged, but his mind and inner voice remained perfectly intact—trapped behind a medical barrier.
+
+When I looked at the neuro-tech market to find a way for him to communicate, I found two unacceptable extremes:
+1. **Clinical EEGs:** Cost $50,000, require 128 wet-gel electrodes, and tether the patient to a hospital bed.
+2. **Neuralink:** Requires drilling a hole into the patient's skull for brain surgery—a procedure most stroke victims cannot physically endure.
+
+I realized the industry was broken. TRIBE BCI was built to bridge this gap. By combining precision spatial targeting over the brain's speech centers with an LLM error-correction engine, we have created a non-invasive, $800 consumer wearable that decodes inner speech. 
+
+This is not just a research project. This is the software layer to give paralyzed individuals their voices back.
+
 ## Why This Matters
 
 Every existing brain-computer interface requires either invasive surgery (Neuralink) or a $50,000+ clinical-grade EEG system with 128 wet-gel electrodes. Neither scales to consumers.
